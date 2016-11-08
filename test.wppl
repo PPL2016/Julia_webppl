@@ -1,0 +1,81 @@
+var diceRoll = function(num) {
+    return function() {
+        randomInteger(num)+1;
+    }
+};
+
+// probability distribution of a d6
+var d6 = Infer({method: 'enumerate'}, function() {
+ return randomInteger(6)+1;
+});
+
+// probability distribution of a d12
+var d12 = Infer({method: 'enumerate'}, function() {
+    diceRoll(12);
+});
+
+var rolld6d12 = function () {
+  var die1 = randomInteger(6) + 1;
+  var die2 = randomInteger(12) + 1;
+  return die1 + die2;
+}
+
+var diceThenCoins = function() {
+  var coins = function(die) {
+    if (die ==0) return 0;
+    else if (flip(0.5)){
+      return 1+coins(die-1);
+    }
+    else {
+      return coins(die-1);
+    }
+  }
+  
+    var num = randomInteger(6)+1;
+    return coins(num);
+}
+
+var diePot = function () {
+    var die = function() {
+        var roll = randomInteger(20)+1;
+        if (!(roll==6 || roll==8 || roll==12 || roll==20)){
+            factor(-Infinity);
+        } else if (roll==20 || roll==12) {
+            factor(Math.log(14/11.5));
+        } else{
+            factor(Math.log(9/11.5));
+        }
+        return roll;
+    }
+    var d1 = die();
+    var d2 = die();
+    return {d1: d1, d2: d2};
+}
+
+var onlytallies = function () {
+    var tallies = function(n) {
+        if (n==0) {
+            return 0;
+        }
+        var r1 = randomInteger(12)+1;
+        var r2 = randomInteger(12)+1;
+        var total = (r1+r2>16) ? 1 + tallies(n-1) : tallies(n-1);
+        return total;
+    }
+    return tallies(30);
+}
+
+var ProbN = function() {
+    var tallyprob = Infer({method: 'MCMC', samples: 100000},onlytallies).score(3);
+    var d12sprob = Infer({method: 'enumerate'},diePot).score({d1:12,d2:12});
+    return Math.exp(tallyprob+d12sprob);
+}
+
+// UNCOMMENT THIS FOR: Probability distribution of rolling a d6 and d12
+// Enumerate(rolld6d12);
+
+// UNCOMMENT THIS FOR: Exact probability of throwing a d6, throwing that many coins, and getting 3 heads
+// Math.exp(Enumerate(diceThenCoins).score(3));
+
+// UNCOMMENT THIS FOR: Sampled probability of drawing two d12s and putting 3 marks in the right column
+ProbN();
